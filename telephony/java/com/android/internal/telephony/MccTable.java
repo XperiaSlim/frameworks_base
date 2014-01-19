@@ -188,7 +188,6 @@ public final class MccTable
             if (mcc != 0) {
                 setTimezoneFromMccIfNeeded(context, mcc);
                 setLocaleFromMccIfNeeded(context, mcc);
-                setWifiCountryCodeFromMcc(context, mcc);
             }
             try {
                 Configuration config = ActivityManagerNative.getDefault().getConfiguration();
