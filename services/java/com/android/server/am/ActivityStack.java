@@ -218,11 +218,6 @@ final class ActivityStack {
     long mFullyDrawnStartTime = 0;
 
     /**
-     * Is the privacy guard currently enabled?
-     */
-    static String sPrivacyGuardPackageName = null;
-
-    /**
      * Save the most recent screenshot for reuse. This keeps Recents from taking two identical
      * screenshots, one for the Recents thumbnail and one for the pauseActivity thumbnail.
      */
@@ -1102,6 +1097,7 @@ final class ActivityStack {
                             if (!r.visible) {
                                 if (DEBUG_VISBILITY) Slog.v(
                                         TAG, "Starting and making visible: " + r);
+                                r.visible = true;
                                 mWindowManager.setAppVisibility(r.appToken, true);
                             }
                             if (r != starting) {
@@ -1152,7 +1148,7 @@ final class ActivityStack {
                     } else if (isActivityOverHome(r)) {
                         if (DEBUG_VISBILITY) Slog.v(TAG, "Showing home: at " + r);
                         showHomeBehindStack = true;
-                        behindFullscreen = !isHomeStack();
+                        behindFullscreen = !isHomeStack() && r.frontOfTask && task.mOnTopOfHome;
                     }
                 } else {
                     if (DEBUG_VISBILITY) Slog.v(
@@ -1702,23 +1698,24 @@ final class ActivityStack {
             1, UserHandle.USER_CURRENT) == 0) {
             return;
         }
-        if (sPrivacyGuardPackageName != null && sPrivacyGuardPackageName.equals(next.packageName)) {
+        String privacyGuardPackageName = mStackSupervisor.mPrivacyGuardPackageName;
+        if (privacyGuardPackageName != null && privacyGuardPackageName.equals(next.packageName)) {
             return;
         }
 
         int privacy = mService.mAppOpsService.getPrivacyGuardSettingForPackage(
                 next.app.uid, next.packageName);
 
-        if (sPrivacyGuardPackageName != null && privacy == AppOpsManager.PRIVACY_GUARD_DISABLED) {
+        if (privacyGuardPackageName != null && privacy == AppOpsManager.PRIVACY_GUARD_DISABLED) {
             Message msg = mService.mHandler.obtainMessage(
                     ActivityManagerService.CANCEL_PRIVACY_NOTIFICATION_MSG, next.userId);
             msg.sendToTarget();
-            sPrivacyGuardPackageName = null;
+            mStackSupervisor.mPrivacyGuardPackageName = null;
         } else if (privacy > AppOpsManager.PRIVACY_GUARD_DISABLED) {
             Message msg = mService.mHandler.obtainMessage(
                     ActivityManagerService.POST_PRIVACY_NOTIFICATION_MSG, privacy, 0, next);
             msg.sendToTarget();
-            sPrivacyGuardPackageName = next.packageName;
+            mStackSupervisor.mPrivacyGuardPackageName = next.packageName;
         }
     }
 

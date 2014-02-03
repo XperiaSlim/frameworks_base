@@ -25,6 +25,9 @@ import static com.android.internal.util.slim.QSConstants.TILE_BATTERY;
 import static com.android.internal.util.slim.QSConstants.TILE_BLUETOOTH;
 import static com.android.internal.util.slim.QSConstants.TILE_BRIGHTNESS;
 import static com.android.internal.util.slim.QSConstants.TILE_BUGREPORT;
+import static com.android.internal.util.slim.QSConstants.TILE_CONTACT;
+import static com.android.internal.util.slim.QSConstants.TILE_CUSTOM;
+import static com.android.internal.util.slim.QSConstants.TILE_CUSTOM_KEY;
 import static com.android.internal.util.slim.QSConstants.TILE_DELIMITER;
 import static com.android.internal.util.slim.QSConstants.TILE_EXPANDEDDESKTOP;
 import static com.android.internal.util.slim.QSConstants.TILE_IMESWITCHER;
@@ -75,6 +78,8 @@ import com.android.systemui.quicksettings.BatteryTile;
 import com.android.systemui.quicksettings.BluetoothTile;
 import com.android.systemui.quicksettings.BrightnessTile;
 import com.android.systemui.quicksettings.BugReportTile;
+import com.android.systemui.quicksettings.ContactTile;
+import com.android.systemui.quicksettings.CustomTile;
 import com.android.systemui.quicksettings.ExpandedDesktopTile;
 import com.android.systemui.quicksettings.LocationTile;
 import com.android.systemui.quicksettings.InputMethodTile;
@@ -246,6 +251,10 @@ public class QuickSettingsController {
                 qs = new ThemeTile(mContext, this);
             } else if (tile.equals(TILE_QUICKRECORD)) {
                 qs = new QuickRecordTile(mContext, this);
+            } else if (tile.contains(TILE_CUSTOM)) {
+                qs = new CustomTile(mContext, this, findCustomKey(tile));
+            } else if (tile.contains(TILE_CONTACT)) {
+                qs = new ContactTile(mContext, this, findCustomKey(tile));
             }
 
             if (qs != null) {
@@ -290,6 +299,11 @@ public class QuickSettingsController {
             }
         }
 
+    }
+
+    private String findCustomKey (String tile) {
+        String[] split = tile.split(TILE_CUSTOM_KEY);
+        return split[1];
     }
 
     public void shutdown() {
@@ -376,6 +390,14 @@ public class QuickSettingsController {
     }
 
     public void registerObservedContent(Uri uri, QuickSettingsTile tile) {
+        registerInMap(uri, tile, mObserverMap);
+    }
+
+    // Add to map and don't requre a race to post update methods
+    // to do so.  Can register at any point in a tile's lifetime.
+    public void addtoInstantObserverMap(Uri uri, QuickSettingsTile tile) {
+        ContentResolver resolver = mContext.getContentResolver();
+        resolver.registerContentObserver(uri, false, mObserver);
         registerInMap(uri, tile, mObserverMap);
     }
 
